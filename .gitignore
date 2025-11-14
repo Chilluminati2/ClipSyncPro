@@ -1,0 +1,31 @@
+# CMake and build files
+/build/
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+
+# Visual Studio files
+.vs/
+*.VC.db
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+# Generated packages
+*.zip
+*.rar
+*.7z
+
+# Temporary files
+*.tmp
+
+# Executables
+*.exe
+*.dll
+
+# IDE-specific
+.idea/

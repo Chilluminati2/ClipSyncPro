@@ -1,17 +1,17 @@
-// src/gui/MainWindow.h
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
 #include <QWidget>
 
+// Forward declarations
 class QListWidget;
 class QListWidgetItem;
 class QLineEdit;
 class ClipboardManager;
+class QString; // Added for the function argument
 
 class MainWindow : public QWidget {
     Q_OBJECT
-
 public:
     explicit MainWindow(ClipboardManager* manager, QWidget* parent = nullptr);
 
@@ -26,7 +26,9 @@ private slots:
     void onSearchQueryChanged(const QString& text);
 
 private:
-    void loadStyleSheet();
+    // **** THIS IS THE FIX ****
+    // We are telling the blueprint that this function now takes a path as an argument.
+    void loadStyleSheet(const QString& path);
 
     // UI Elements
     QListWidget* m_historyListWidget;

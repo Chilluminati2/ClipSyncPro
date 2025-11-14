@@ -1,6 +1,4 @@
-// We are no longer including any header file.
-// We are defining the ID directly in this file.
+// This file defines the icon for the .exe and includes NOTHING.
 #define IDI_APPICON 101
 
-// This line uses the ID we just defined.
 IDI_APPICON ICON "assets/ico.ico"
