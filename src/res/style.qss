@@ -1,0 +1,80 @@
+/* 
+    style.qss
+    A modern dark theme for ClipSync Pro.
+*/
+
+/* Affects the main window */
+QWidget {
+    background-color: #2b2b2b; /* Dark charcoal */
+    color: #f0f0f0;            /* Off-white text */
+    font-family: "Segoe UI", "Cantarell", "sans-serif";
+    font-size: 11pt;
+}
+
+/* Affects the search bar */
+QLineEdit {
+    background-color: #3c3c3c;
+    border: 1px solid #555555;
+    border-radius: 5px;
+    padding: 5px 8px;
+}
+
+/* Affects the list of clipboard items */
+QListWidget {
+    background-color: #3c3c3c; /* Slightly lighter charcoal */
+    border: 1px solid #555555;
+    border-radius: 5px;
+    padding: 5px;
+    outline: 0; /* No focus outline */
+}
+
+/* Affects individual items in the list */
+QListWidget::item {
+    padding: 8px 10px;
+    border-radius: 4px;
+    margin: 2px 0;
+    border-bottom: 1px solid #4a4a4a;
+}
+
+/* Styles an item when the mouse is hovering over it */
+QListWidget::item:hover {
+    background-color: #5a5a5a; /* Medium gray */
+}
+
+/* Styles an item when it is selected */
+QListWidget::item:selected {
+    background-color: #0078d7; /* A nice, vibrant blue */
+    color: #ffffff;
+}
+
+/* Affects the push button */
+QPushButton {
+    background-color: #555555;
+    color: #ffffff;
+    border: 1px solid #666666;
+    border-radius: 5px;
+    padding: 8px 15px;
+    font-weight: bold;
+}
+
+/* Button style when pressed */
+QPushButton:pressed {
+    background-color: #444444;
+    border: 1px solid #555555;
+}
+
+/* Button style when hovered */
+QPushButton:hover {
+    background-color: #6a6a6a;
+    border: 1px solid #777777;
+}
+
+/* Styles the pop-up message box */
+QMessageBox {
+    background-color: #3c3c3c;
+}
+
+QMessageBox QLabel {
+    color: #f0f0f0;
+    font-size: 11pt;
+}

@@ -1,0 +1,10 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/">
+        <!-- This embeds our icon. The 'alias' makes it easy to find. -->
+        <file alias="app_icon.ico">assets/ico.ico</file>
+        
+        <!-- This embeds our stylesheet. -->
+        <file>src/res/style.qss</file>
+    </qresource>
+</RCC>

@@ -1,0 +1,6 @@
+// We are no longer including any header file.
+// We are defining the ID directly in this file.
+#define IDI_APPICON 101
+
+// This line uses the ID we just defined.
+IDI_APPICON ICON "assets/ico.ico"
