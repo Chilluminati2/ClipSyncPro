@@ -1,47 +1,61 @@
 // src/main.cpp
 #include <QApplication>
-#include <QObject> // Needed for QObject::connect
+#include <QPalette>
+#include <QColor>
+#include <QStyleFactory>
 
 #include "gui/MainWindow.h"
-#include "gui/SystemTray.h" // Include our new class
+#include "gui/SystemTray.h"
+#include "platform/GlobalHotkey.h"
 #include "core/ClipboardManager.h"
 #include "storage/HistoryManager.h"
+#include "core/Snippet.h"
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
+    qRegisterMetaType<Snippet>();
     
-    // IMPORTANT: This line prevents the app from quitting when you close the main window.
-    // Instead, the window will just hide, and the app will keep running in the tray.
-    app.setQuitOnLastWindowClosed(false);
+    // --- SIMPLE, RELIABLE DARK THEME ---
+    // Use the "Fusion" style for a consistent look across platforms
+    app.setStyle(QStyleFactory::create("Fusion"));
 
-    // Standard application metadata
+    // Create a dark color palette
+    QPalette darkPalette;
+    darkPalette.setColor(QPalette::Window, QColor(45, 45, 45)); // Main window background
+    darkPalette.setColor(QPalette::WindowText, Qt::white); // Main text color
+    darkPalette.setColor(QPalette::Base, QColor(35, 35, 35)); // Background for text inputs, lists
+    darkPalette.setColor(QPalette::AlternateBase, QColor(45, 45, 45)); // Alternating row colors
+    darkPalette.setColor(QPalette::ToolTipBase, Qt::white);
+    darkPalette.setColor(QPalette::ToolTipText, Qt::black);
+    darkPalette.setColor(QPalette::Text, Qt::white); // Text color for inputs, lists
+    darkPalette.setColor(QPalette::Button, QColor(60, 60, 60)); // Button background
+    darkPalette.setColor(QPalette::ButtonText, Qt::white);
+    darkPalette.setColor(QPalette::BrightText, Qt::red);
+    darkPalette.setColor(QPalette::Link, QColor(42, 130, 218));
+    darkPalette.setColor(QPalette::Highlight, QColor(42, 130, 218)); // Color for selected items
+    darkPalette.setColor(QPalette::HighlightedText, Qt::black);
+    
+    // Apply the dark palette to the entire application
+    app.setPalette(darkPalette);
+    
+    // The rest of the setup is the same
+    app.setQuitOnLastWindowClosed(false);
     app.setOrganizationName("YourCompany");
     app.setApplicationName("ClipSyncPro");
 
-    // --- 1. Create all the application components ---
     HistoryManager historyManager;
     ClipboardManager clipboardManager(&historyManager);
     MainWindow window(&clipboardManager);
-    
-    // Create the system tray icon, passing it a pointer to our main window
-    // so it can show/hide it.
     SystemTray tray(&window);
-    tray.show(); // Makes the icon visible in the system tray
+    tray.show();
 
-    // --- 2. Connect the application's quit signal to the save function ---
-    // This is the guaranteed, robust way to save data right before the app fully exits.
-    // This signal is emitted when you click "Quit" from the tray menu.
+    GlobalHotkey hotkey;
+    app.installNativeEventFilter(&hotkey);
+    QObject::connect(&hotkey, &GlobalHotkey::activated, &window, &MainWindow::toggleVisibility);
     QObject::connect(&app, &QApplication::aboutToQuit, &clipboardManager, &ClipboardManager::saveOnExit);
 
-    // --- 3. Initialize the core logic ---
-    // This loads the history from disk and starts monitoring the clipboard.
     clipboardManager.initialize();
-
-    // --- 4. Show the main window on startup ---
     window.show();
 
-    // --- 5. Start the Qt event loop ---
-    // This line runs the application, processes events (like clicks and copies),
-    // and only returns when the app quits.
     return app.exec();
 }

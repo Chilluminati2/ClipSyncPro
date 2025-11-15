@@ -1,6 +1,7 @@
 // src/gui/MainWindow.cpp
 #include "MainWindow.h"
 #include "core/ClipboardManager.h"
+#include "gui/SnippetDelegate.h"
 #include <QApplication>
 #include <QCloseEvent>
 #include <QFile>
@@ -9,76 +10,90 @@
 #include <QIcon>
 #include <QLabel>
 #include <QLineEdit>
-#include <QListWidget>
+#include <QListView>
+#include <QStandardItemModel>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QTimer>
-#include <QDir>
 #include <QDebug>
+
+Q_DECLARE_METATYPE(Snippet)
 
 MainWindow::MainWindow(ClipboardManager* manager, QWidget* parent)
     : QWidget(parent), m_manager(manager) {
     
-    // We get the application's directory path
-    QString appPath = QApplication::applicationDirPath();
-    
-    // Load the icon directly from the file system
-    setWindowIcon(QIcon(appPath + "/assets/ico.ico")); 
-    
-    // Load the stylesheet directly from the file system
-    loadStyleSheet(appPath + "/res/style.qss");
-
+    // We go back to a simple window with a normal title bar
+    setWindowIcon(QIcon(":/app_icon.ico"));
     setWindowTitle("ClipSync Pro");
-    setMinimumSize(450, 600);
+    setMinimumSize(500, 600);
+
+    // Apply minimal stylesheet for things the palette doesn't control well, like scrollbars
+    applyStylesheet();
+
+    // Main layout with standard margins
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(10, 10, 10, 10);
     mainLayout->setSpacing(10);
-    mainLayout->setContentsMargins(15, 15, 15, 15);
-    QLabel* titleLabel = new QLabel("Clipboard History");
-    QFont titleFont = titleLabel->font();
-    titleFont.setPointSize(16);
-    titleFont.setBold(true);
-    titleLabel->setFont(titleFont);
+    
+    // UI elements
     m_searchBar = new QLineEdit();
     m_searchBar->setPlaceholderText("Search history...");
     m_searchBar->setFixedHeight(35);
-    m_searchBar->setClearButtonEnabled(true);
-    m_historyListWidget = new QListWidget();
-    m_historyListWidget->setWordWrap(true);
+
+    m_historyView = new QListView();
+    m_model = new QStandardItemModel(this);
+    m_historyView->setModel(m_model);
+    m_historyView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    m_historyView->setItemDelegate(new SnippetDelegate(this));
+    m_historyView->setWordWrap(true);
+
     QHBoxLayout* bottomLayout = new QHBoxLayout();
+    QLabel* footerLabel = new QLabel("Created by Kareem with love ❤️");
+    footerLabel->setObjectName("FooterLabel"); // In case we want to style it
     QPushButton* clearButton = new QPushButton("Clear History");
+    bottomLayout->addWidget(footerLabel);
     bottomLayout->addStretch();
     bottomLayout->addWidget(clearButton);
-    mainLayout->addWidget(titleLabel);
+
+    // Add widgets to the layout
     mainLayout->addWidget(m_searchBar);
-    mainLayout->addWidget(m_historyListWidget, 1);
+    mainLayout->addWidget(m_historyView, 1);
     mainLayout->addLayout(bottomLayout);
-    setLayout(mainLayout);
-    connect(m_manager, &ClipboardManager::historyChanged, this, &MainWindow::updateFullHistory);
-    connect(m_manager, &ClipboardManager::newItemAdded, this, &MainWindow::addItemToList);
-    connect(clearButton, &QPushButton::clicked, this, &MainWindow::onClearButtonClicked);
-    connect(m_historyListWidget, &QListWidget::itemDoubleClicked, this, &MainWindow::onItemDoubleClicked);
+    
+    // Connect signals
+    connect(m_manager, &ClipboardManager::historyChanged, this, &MainWindow::updateHistoryView);
+    connect(clearButton, &QPushButton::clicked, m_manager, &ClipboardManager::clearHistory);
+    connect(m_historyView, &QListView::doubleClicked, this, &MainWindow::onItemDoubleClicked);
     connect(m_searchBar, &QLineEdit::textChanged, this, &MainWindow::onSearchQueryChanged);
 }
 
-void MainWindow::loadStyleSheet(const QString& path) {
-    QFile styleFile(path); 
-    if (!styleFile.open(QFile::ReadOnly | QFile::Text)) {
-        qWarning() << "Could not open stylesheet file at:" << path;
-        return;
-    }
-    this->setStyleSheet(styleFile.readAll());
+void MainWindow::applyStylesheet() {
+    // A minimal stylesheet just for the scrollbar and footer
+    this->setStyleSheet(
+        "QScrollBar:vertical { border: none; background: #232323; width: 10px; margin: 0; }"
+        "QScrollBar::handle:vertical { background-color: #505050; min-height: 20px; border-radius: 5px; }"
+        "QScrollBar::handle:vertical:hover { background-color: #606060; }"
+        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }"
+        "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: none; }"
+        "#FooterLabel { color: #888; font-size: 9pt; }"
+    );
 }
 
-// ... THE REST OF THE FILE IS THE SAME AS BEFORE ...
-
-void MainWindow::onSearchQueryChanged(const QString& text) {
-    for (int i = 0; i < m_historyListWidget->count(); ++i) {
-        QListWidgetItem* item = m_historyListWidget->item(i);
-        const bool matches = item->text().contains(text, Qt::CaseInsensitive);
-        item->setHidden(!matches);
+void MainWindow::toggleVisibility() {
+    if (isMinimized()) {
+        showNormal();
+    }
+    
+    if (isVisible()) {
+        hide();
+    } else {
+        show();
+        activateWindow();
+        raise();
     }
 }
+
 void MainWindow::closeEvent(QCloseEvent* event) {
     if (QApplication::quitOnLastWindowClosed()) {
         hide();
@@ -87,25 +102,29 @@ void MainWindow::closeEvent(QCloseEvent* event) {
         event->accept();
     }
 }
-void MainWindow::updateFullHistory(const QStringList& history) {
-    m_historyListWidget->clear();
-    m_historyListWidget->addItems(history);
-    onSearchQueryChanged(m_searchBar->text());
-}
-void MainWindow::addItemToList(const QString& item) {
-    m_historyListWidget->insertItem(0, item);
-    onSearchQueryChanged(m_searchBar->text());
-}
-void MainWindow::onClearButtonClicked() {
-    if (QMessageBox::question(this, "Confirm Clear", "Are you sure you want to clear your entire clipboard history?") == QMessageBox::Yes) {
-        m_manager->clearHistory();
+
+void MainWindow::updateHistoryView(const QList<Snippet>& history) {
+    m_model->clear();
+    for (const Snippet& snippet : history) {
+        QStandardItem* item = new QStandardItem();
+        item->setData(QVariant::fromValue(snippet), Qt::UserRole);
+        m_model->appendRow(item);
     }
+    onSearchQueryChanged(m_searchBar->text());
 }
-void MainWindow::onItemDoubleClicked(QListWidgetItem* item) {
-    if (!item) return;
-    m_manager->copyToClipboardByText(item->text());
-    QMessageBox* msgBox = new QMessageBox(QMessageBox::Information,"Copied!","The selected item has been copied to your clipboard.",QMessageBox::NoButton,this);
-    msgBox->setStandardButtons(QMessageBox::NoButton); 
-    QTimer::singleShot(1000, msgBox, &QMessageBox::accept);
-    msgBox->exec();
+
+void MainWindow::onItemDoubleClicked(const QModelIndex& index) {
+    if (!index.isValid()) return;
+    Snippet snippet = index.data(Qt::UserRole).value<Snippet>();
+    m_manager->copyToClipboard(snippet.data);
+    hide();
+}
+
+void MainWindow::onSearchQueryChanged(const QString& text) {
+    for (int i = 0; i < m_model->rowCount(); ++i) {
+        QModelIndex index = m_model->index(i, 0);
+        Snippet snippet = index.data(Qt::UserRole).value<Snippet>();
+        bool matches = snippet.displayText.contains(text, Qt::CaseInsensitive);
+        m_historyView->setRowHidden(i, !matches);
+    }
 }

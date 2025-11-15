@@ -3,7 +3,8 @@
 #define CLIPBOARDMANAGER_H
 
 #include <QObject>
-#include <QStringList>
+#include <QMimeData>
+#include "Snippet.h"
 
 class QClipboard;
 class HistoryManager;
@@ -14,24 +15,28 @@ class ClipboardManager : public QObject {
 public:
     explicit ClipboardManager(HistoryManager* historyManager, QObject* parent = nullptr);
     void initialize();
-    const QStringList& getHistory() const;
+    const QList<Snippet>& getHistory() const;
 
 public slots:
     void clearHistory();
-    void copyToClipboardByText(const QString& text);
+    void copyToClipboard(const QVariant& data);
     void saveOnExit();
+
+// **** THIS IS THE FIX ****
+signals:
+    // We are now declaring that this class can emit a signal named 'historyChanged'.
+    void historyChanged(const QList<Snippet>& history);
 
 private slots:
     void onClipboardDataChanged();
 
-signals:
-    void historyChanged(const QStringList& history);
-    void newItemAdded(const QString& item);
-
 private:
+    Snippet createSnippetFromMimeData(const QMimeData* mimeData);
+    bool isDuplicate(const Snippet& newSnippet);
+
     QClipboard* m_clipboard;
     HistoryManager* m_historyManager;
-    QStringList m_history;
+    QList<Snippet> m_history;
 };
 
 #endif // CLIPBOARDMANAGER_H

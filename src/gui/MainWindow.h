@@ -1,38 +1,39 @@
+// src/gui/MainWindow.h
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
 #include <QWidget>
+#include "core/Snippet.h"
 
 // Forward declarations
-class QListWidget;
-class QListWidgetItem;
+class QListView;
 class QLineEdit;
+class QStandardItemModel;
 class ClipboardManager;
-class QString; // Added for the function argument
+class QModelIndex;
+class QCloseEvent;
 
 class MainWindow : public QWidget {
     Q_OBJECT
 public:
     explicit MainWindow(ClipboardManager* manager, QWidget* parent = nullptr);
+    void toggleVisibility();
 
 protected:
     void closeEvent(QCloseEvent* event) override;
 
 private slots:
-    void updateFullHistory(const QStringList& history);
-    void addItemToList(const QString& item);
-    void onClearButtonClicked();
-    void onItemDoubleClicked(QListWidgetItem* item);
+    void updateHistoryView(const QList<Snippet>& history);
+    void onItemDoubleClicked(const QModelIndex& index);
     void onSearchQueryChanged(const QString& text);
 
 private:
-    // **** THIS IS THE FIX ****
-    // We are telling the blueprint that this function now takes a path as an argument.
-    void loadStyleSheet(const QString& path);
+    void applyStylesheet();
 
     // UI Elements
-    QListWidget* m_historyListWidget;
+    QListView* m_historyView;
     QLineEdit* m_searchBar;
+    QStandardItemModel* m_model;
     ClipboardManager* m_manager;
 };
 
