@@ -16,15 +16,14 @@ public:
     explicit ClipboardManager(HistoryManager* historyManager, QObject* parent = nullptr);
     void initialize();
     const QList<Snippet>& getHistory() const;
+    void saveHistory(); // New public save function
 
 public slots:
     void clearHistory();
     void copyToClipboard(const QVariant& data);
-    void saveOnExit();
+    // The saveOnExit slot is no longer needed and has been removed.
 
-// **** THIS IS THE FIX ****
 signals:
-    // We are now declaring that this class can emit a signal named 'historyChanged'.
     void historyChanged(const QList<Snippet>& history);
 
 private slots:

@@ -94,13 +94,13 @@ void MainWindow::toggleVisibility() {
     }
 }
 
-void MainWindow::closeEvent(QCloseEvent* event) {
-    if (QApplication::quitOnLastWindowClosed()) {
-        hide();
-        event->ignore();
-    } else {
-        event->accept();
-    }
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+    // Don't quit the app, just hide the main window.
+    // The only way to truly quit now is via the system tray menu,
+    // which will correctly trigger the save-on-quit signal.
+    this->hide();
+    event->ignore(); // Tell the system we have handled the event. Do not close!
 }
 
 void MainWindow::updateHistoryView(const QList<Snippet>& history) {

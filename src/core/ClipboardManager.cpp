@@ -26,6 +26,7 @@ const QList<Snippet>& ClipboardManager::getHistory() const {
 void ClipboardManager::clearHistory() {
     m_history.clear();
     emit historyChanged(m_history);
+    saveHistory(); // SAVE immediately after clearing
 }
 
 void ClipboardManager::copyToClipboard(const QVariant& data) {
@@ -40,8 +41,10 @@ void ClipboardManager::copyToClipboard(const QVariant& data) {
     connect(m_clipboard, &QClipboard::dataChanged, this, &ClipboardManager::onClipboardDataChanged);
 }
 
-void ClipboardManager::saveOnExit() {
+// This is our new public save function, called whenever data changes.
+void ClipboardManager::saveHistory() {
     m_historyManager->saveHistory(m_history);
+    qDebug() << "History saved to disk.";
 }
 
 void ClipboardManager::onClipboardDataChanged() {
@@ -58,6 +61,8 @@ void ClipboardManager::onClipboardDataChanged() {
     m_history.prepend(newSnippet);
     qDebug() << "New snippet captured:" << newSnippet.displayText;
     emit historyChanged(m_history);
+    
+    saveHistory(); // SAVE immediately after adding a new item
 }
 
 bool ClipboardManager::isDuplicate(const Snippet& newSnippet) {
@@ -70,7 +75,6 @@ bool ClipboardManager::isDuplicate(const Snippet& newSnippet) {
         return newSnippet.data.toString() == lastSnippet.data.toString();
     }
     if (newSnippet.type == Snippet::Image) {
-        // Simple comparison for now. A more robust check might use hashes.
         return newSnippet.data.value<QImage>() == lastSnippet.data.value<QImage>();
     }
     return false;
@@ -80,35 +84,26 @@ Snippet ClipboardManager::createSnippetFromMimeData(const QMimeData* mimeData) {
     Snippet snippet;
     snippet.timestamp = QDateTime::currentDateTime();
 
-    // Prioritize Images over Text
     if (mimeData->hasImage()) {
         snippet.type = Snippet::Image;
         QImage image = qvariant_cast<QImage>(mimeData->imageData());
-        snippet.data = image; // Store the full image
+        snippet.data = image;
         snippet.displayText = QString("[Image] %1x%2 - Copied at %3")
                                 .arg(image.width()).arg(image.height())
                                 .arg(snippet.timestamp.toString("h:mm:ss ap"));
     }
-    // Then check for Text
     else if (mimeData->hasText()) {
         snippet.type = Snippet::Text;
         QString text = mimeData->text();
         snippet.data = text;
-        snippet.displayText = text.simplified(); // Show a cleaned-up version
+        snippet.displayText = text.simplified();
 
-        // --- CONTENT-AWARE LOGIC ---
-        // Check for Hex/RGB color codes
         QRegularExpression colorRegex("(#[0-9a-fA-F]{3,8}|rgb[a]?\\s*\\([0-9, ]+\\))");
         QRegularExpressionMatch match = colorRegex.match(text.trimmed());
-        if (match.hasMatch()) {
-            QColor color(match.captured(1));
-            if (color.isValid()) {
-                snippet.previewColor = color;
-                snippet.displayText = QString("[Color] %1").arg(match.captured(1));
-            }
-        }
-        // Check for URLs
-        else if (text.trimmed().startsWith("http://") || text.trimmed().startsWith("https://")) {
+        if (match.hasMatch() && QColor(match.captured(1)).isValid()) {
+            snippet.previewColor = QColor(match.captured(1));
+            snippet.displayText = QString("[Color] %1").arg(match.captured(1));
+        } else if (text.trimmed().startsWith("http")) {
             snippet.displayText = QString("[Link] %1").arg(text.trimmed());
         }
     }
